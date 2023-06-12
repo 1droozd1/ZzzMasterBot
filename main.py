@@ -28,6 +28,7 @@ async def put(update: Update) -> list:
     value = list(map(int, update.message.text.split(":")))
     return value
 
+#FIXME
 # Обработчик команды /calculate
 async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
