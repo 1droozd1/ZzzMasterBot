@@ -18,7 +18,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-CHOICE = 0
+CHOICE, TIME_OF_WAKEUP, HOURS = range(3)
+
+wake_up_hour, wake_up_minute = 0, 0
 
 # Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -31,33 +33,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
          reply_keyboard, 
          one_time_keyboard=True),
    )
-   return CHOICE
-
-async def choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
    user = update.message.from_user
    logger.info("Choice of %s: %s", user.first_name, update.message.text)
-
-   if update.message.text == "Калькулятор сна":
-      CHOICE = 0
-   elif update.message.text == "Статьи":
-      CHOICE = 1
-   else:
-      CHOICE = 2
 
    await context.bot.send_message(
       chat_id= update.effective_chat.id,
       text=f"Выбранная вами команда: {update.message.text}"
    )
-
    return CHOICE
 
-async def getting_time_fromUsers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def getting_up_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
    await context.bot.send_message(
       chat_id=update.effective_chat.id,
       text="Укажите желаемое время пробуждения в формате ЧЧ:ММ"
    )
+   return TIME_OF_WAKEUP
 
+async def getting_amountHours(update: Update, context: ContextTypes.DEFAULT_TYPE):
    string_fromUsers = update.message.text
+
+   global wake_up_hour, wake_up_minute
 
    try:
       wake_up_hour, wake_up_minute = map(int, string_fromUsers.split(":"))
@@ -65,14 +60,18 @@ async def getting_time_fromUsers(update: Update, context: ContextTypes.DEFAULT_T
    except:
       await context.bot.send_message(
          chat_id=update.effective_chat.id,
-         text="Извините, произошла ошибка. Пожалуйста, укажите время проснуться в формате ЧЧ:ММ."
+         text="Извините, произошла ошибка."
       )
+      return CHOICE
    
    await context.bot.send_message(
          chat_id = update.effective_chat.id,
          text="Отлично! Теперь укажите длительность сна, которую вы предпочитаете (в часах)."
       )
-   
+   return HOURS
+
+async def calculate_hours(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
    try:
       amount_hours = int(update.message.text)
    except:
@@ -80,6 +79,7 @@ async def getting_time_fromUsers(update: Update, context: ContextTypes.DEFAULT_T
          chat_id=update.effective_chat.id,
          text="Извините, произошла ошибка. Пожалуйста, укажите длительность сна, которую вы предпочитаете (в часах)."
       )
+      return TIME_OF_WAKEUP
    
    current_time = datetime.datetime.now()
 
@@ -101,71 +101,46 @@ async def getting_time_fromUsers(update: Update, context: ContextTypes.DEFAULT_T
    await context.bot.send_message(
          chat_id = update.effective_chat.id,
          text=f"Оптимальное время для отхода ко сну это: {bedtime}"
-      )
-
-      
-
-
-#FIXME
-# Обработчик команды /calculate
-'''async def calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-   await context.bot.send_message(
-      chat_id=update.effective_chat.id,
-      text="Укажите желаемое время пробуждения в формате ЧЧ:ММ"
    )
-   try:
-      getting_values = put(Update)
-      wake_up_hour, wake_up_minute = getting_values[0], getting_values[1]
-
-      await context.bot.send_message(
-         chat_id = update.effective_chat.id,
-         text="Отлично! Теперь укажите длительность сна, которую вы предпочитаете (в часах)."
-      )
-
-      hours = int(update.message.text)
-
-      await context.bot.send_message(
-         chat_id = update.effective_chat.id,
-         text=f"Указанное время: {hours}"
-      )
-
-   except:
-      await context.bot.send_message(
-      chat_id = update.effective_chat.id,
-      text="Извините, произошла ошибка. Пожалуйста, укажите время проснуться в формате ЧЧ:ММ."
-      )'''
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(
-        "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
+    await context.bot.send_message(
+       chat_id= update.effective_chat.id,
+       text= "Надеюсь, что я вам чем-то помог!", reply_markup=ReplyKeyboardRemove()
     )
 
     return ConversationHandler.END
-
-async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Простите, я не знаю такой команды, повторите ваш запрос)")
-
 
 def main():
    # Создание экземпляра Updater и передача токена вашего бота
    application = ApplicationBuilder().token('6060347607:AAFlBr6_tS7TrFjYlmfPHGcYPGyBbdr9LpA').build()
    
-   start_handler = CommandHandler('start', start)
-   application.add_handler(start_handler)
-
-   '''if CHOICE == 0:
-      application.'''
+   conv_handler = ConversationHandler(
+      entry_points=[CommandHandler("start", start)],
+      states={
+         CHOICE: [
+            MessageHandler(
+               filters.Regex("^Калькулятор сна$"), getting_up_time
+            ),
+            '''MessageHandler(
+               filters.Regex("^Статьи"), articles
+            ),
+            MessageHandler(
+               filters.Regex("^Промокод"), promo
+            )'''
+         ],
+         TIME_OF_WAKEUP: [MessageHandler(filters.TEXT, getting_amountHours)],
+         HOURS: [MessageHandler(filters.TEXT, calculate_hours)],
+      },
+      fallbacks=[CommandHandler("cancel", cancel)]
+   )
+   application.add_handler(conv_handler)
    
-   cancel_handler = CommandHandler('cancel', cancel)
-
-
    # Run the bot until the user presses Ctrl-C
    application.run_polling(allowed_updates=Update.ALL_TYPES)
     
-
 if __name__ == '__main__':
    main()
