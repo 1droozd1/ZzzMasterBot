@@ -1,5 +1,11 @@
 import logging
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import (
+    ReplyKeyboardMarkup, 
+    ReplyKeyboardRemove, 
+    Update, 
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
 import datetime
 
 from telegram.ext import (
@@ -8,8 +14,17 @@ from telegram.ext import (
     ContextTypes,
     ConversationHandler,
     MessageHandler,
+    CallbackQueryHandler,
     filters,
 )
+
+articles = {
+   "First" : "https://github.com/1droozd1",
+   "Second" : "https://github.com/1droozd1",
+   "Third" : "https://github.com/1droozd1",
+   "Fourth" : "https://github.com/1droozd1",
+   "Fifth" : "https://github.com/1droozd1",
+}
 
 # Настройка журналирования
 logging.basicConfig(
@@ -18,19 +33,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-CHOICE, TIME_OF_WAKEUP, HOURS = range(3)
+CHOICE, TIME_OF_WAKEUP, HOURS, ARTICLE, BUTTON = range(5)
 
 wake_up_hour, wake_up_minute = 0, 0
 
 # Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-   reply_keyboard = [["Калькулятор сна", "Статьи", "Промокод"]]
+   reply_keyboard_first_menu = [["Калькулятор сна", "Статьи", "Промокод"]]
 
    await context.bot.send_message(
       chat_id = update.effective_chat.id,
       text = """Привет! Я могу помочь тебе определить оптимальное время для засыпания и пробуждения. Выбери один из предложенных вариантов моих функций.""",
       reply_markup=ReplyKeyboardMarkup(
-         reply_keyboard, 
+         reply_keyboard_first_menu,
+         resize_keyboard=True,
          one_time_keyboard=True),
    )
    user = update.message.from_user
@@ -100,8 +116,38 @@ async def calculate_hours(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
    await context.bot.send_message(
          chat_id = update.effective_chat.id,
-         text=f"Оптимальное время для отхода ко сну это: {bedtime}"
+         text=f"Оптимальное время для отхода ко сну это: {bedtime}",
+         
    )
+
+   return CHOICE
+
+async def article_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+   keyboard = [
+            [InlineKeyboardButton(f"{key}", callback_data=f"{value}", url=value)] for key, value in articles.items() 
+   ]
+
+   #print(keyboard)
+   reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+   await context.bot.send_message(
+      chat_id=update.effective_chat.id,
+      text="Выберите из предложенного списка интересующую вас статью:",
+      reply_markup=reply_markup
+   )
+   return BUTTON
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Parses the CallbackQuery and updates the message text."""
+    query = update.callback_query
+
+    # CallbackQueries need to be answered, even if no notification to the user is needed
+    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
+    await query.answer()
+
+    await query.edit_message_text(text=f"Selected option: {query.data}")
+
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
@@ -125,15 +171,17 @@ def main():
             MessageHandler(
                filters.Regex("^Калькулятор сна$"), getting_up_time
             ),
-            '''MessageHandler(
-               filters.Regex("^Статьи"), articles
+            MessageHandler(
+               filters.Regex("^Статьи"), article_command
             ),
+            '''
             MessageHandler(
                filters.Regex("^Промокод"), promo
             )'''
          ],
          TIME_OF_WAKEUP: [MessageHandler(filters.TEXT, getting_amountHours)],
          HOURS: [MessageHandler(filters.TEXT, calculate_hours)],
+         BUTTON: [CallbackQueryHandler(button)]
       },
       fallbacks=[CommandHandler("cancel", cancel)]
    )
