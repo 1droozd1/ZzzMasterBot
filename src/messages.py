@@ -1,9 +1,5 @@
 ARTICLES = {
-   "First" : "https://github.com/1droozd1",
-   "Second" : "https://github.com/1droozd1",
-   "Third" : "https://github.com/1droozd1",
-   "Fourth" : "https://github.com/1droozd1",
-   "Fifth" : "https://github.com/1droozd1",
+   "Как правильно готовиться ко сну: 10 полезных советов" : "https://telegra.ph/Kak-pravilno-gotovitsya-ko-snu-10-poleznyh-sovetov-06-16",
 }
 
 CHOICE, TIME_OF_WAKEUP, HOURS, ARTICLE, BUTTON = range(5)
