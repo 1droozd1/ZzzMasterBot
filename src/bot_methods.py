@@ -104,7 +104,7 @@ async def calculate_hours(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(
         chat_id = update.effective_chat.id,
-        text=f"{TIME_OF_WAKEUP}: {bedtime}", 
+        text=f"{TEXT_TIME_OF_WAKEUP}: {bedtime}", 
     )
     # Возврат пользователя в главное меню
     return CHOICE
@@ -119,7 +119,7 @@ async def article_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
       text=TEXT_LIST_OF_ARTICLES,
       reply_markup=reply_markup
    )
-   #return BUTTON - возможно пригодится
+   return CHOICE 
 
 # Завершение диалога с ботом
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
