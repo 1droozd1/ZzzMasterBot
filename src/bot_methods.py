@@ -28,26 +28,34 @@ logger = logging.getLogger(__name__)
 
 # Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-   
+
+   await context.bot.send_photo(
+      chat_id=update.effective_chat.id,
+      photo='https://i.pinimg.com/564x/a8/f1/5e/a8f15eee6a420f42ceae8e2111ab865b.jpg',
+      caption=HELLO_MESSAGE,
+      reply_markup=InlineKeyboardMarkup(inline_keyboard=[start_key])
+      )
+   return MAIN_MENU
+
+async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
    await context.bot.send_message(
       chat_id = update.effective_chat.id,
-      text = HELLO_MESSAGE,
+      text = MAIN_MENU_TEXT,
       reply_markup=ReplyKeyboardMarkup(
          reply_keyboard_first_menu,
          resize_keyboard=True,
-         one_time_keyboard=True),
+         one_time_keyboard=True
+      ),
    )
-   # Логи выбора из начального меню - кнопок
-   user = update.message.from_user
-   logger.info("Choice of %s: %s", user.first_name, update.message.text)
-
    return CHOICE
 
 # Получаем от пользователя время предположительного подъема
 async def getting_up_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
    await context.bot.send_message(
       chat_id=update.effective_chat.id,
-      text=GETTING_UP_TIME_TEXT
+      text=GETTING_UP_TIME_TEXT,
+      #reply_markup=InlineKeyboardMarkup(inline_keyboard=[BACK_KEY]) - пока хз
    )
    return TIME_OF_WAKEUP
 
@@ -62,73 +70,73 @@ async def getting_amountHours(update: Update, context: ContextTypes.DEFAULT_TYPE
    except:
       await context.bot.send_message(
          chat_id=update.effective_chat.id,
-         text=ERROR_TEXT_OF_TIME
+         text=ERROR_TEXT_OF_TIME,
       )
       return CHOICE
    
    await context.bot.send_message(
          chat_id = update.effective_chat.id,
-         text=GETTING_HOURS_OF_SLEEP_TEXT
+         text=GETTING_HOURS_OF_SLEEP_TEXT,
+         #reply_markup=InlineKeyboardMarkup(inline_keyboard=[BACK_KEY]) -пока хз
       )
    return HOURS
 
 # Обрабатываем полученные данные и выдаем результат пользователю
 async def calculate_hours(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    try:
-        amount_hours = int(update.message.text)
-    except:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=ERROR_TEXT_AMOUNT_OF_HOURS
-        )
-        return TIME_OF_WAKEUP
+   try:
+      amount_hours = int(update.message.text)
+   except:
+      await context.bot.send_message(
+         chat_id=update.effective_chat.id,
+         text=ERROR_TEXT_AMOUNT_OF_HOURS
+      )
+      return TIME_OF_WAKEUP
    
-    current_time = datetime.datetime.now()
+   current_time = datetime.datetime.now()
 
-    # Преобразуем введенное время для пробуждения в объект времени
-    wake_up = current_time.replace(hour=wake_up_hour, minute=wake_up_minute, second=0, microsecond=0)
+   # Преобразуем введенное время для пробуждения в объект времени
+   wake_up = current_time.replace(hour=wake_up_hour, minute=wake_up_minute, second=0, microsecond=0)
 
-    # Если введенное время для пробуждения уже прошло сегодня, добавляем 1 день
-    if wake_up < current_time:
-        wake_up += datetime.timedelta(days=1)
+   # Если введенное время для пробуждения уже прошло сегодня, добавляем 1 день
+   if wake_up < current_time:
+      wake_up += datetime.timedelta(days=1)
     
-    # Вычисляем оптимальное время для засыпания, вычитая выбранное кол-во сна от пользователя
-    bedtime = wake_up - datetime.timedelta(hours=amount_hours)
+   # Вычисляем оптимальное время для засыпания, вычитая выбранное кол-во сна от пользователя
+   bedtime = wake_up - datetime.timedelta(hours=amount_hours)
 
-    while bedtime < current_time:
-        bedtime += datetime.timedelta(hours=1, minutes=30)
+   while bedtime < current_time:
+      bedtime += datetime.timedelta(hours=1, minutes=30)
    
-    bedtime = str(bedtime.strftime("%H:%M"))
-    print(bedtime)
+   bedtime = str(bedtime.strftime("%H:%M"))
 
-    await context.bot.send_message(
-        chat_id = update.effective_chat.id,
-        text=f"{TEXT_TIME_OF_WAKEUP}: {bedtime}", 
-    )
-    # Возврат пользователя в главное меню
-    return CHOICE
+   await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text=f"{TEXT_TIME_OF_WAKEUP}: {bedtime}",
+      reply_markup=InlineKeyboardMarkup(inline_keyboard=[BACK_KEY, BYE_KEY])
+   )
+   # Возврат пользователя в главное меню
+   return MAIN_MENU
 
 # Выбор пользователем статьи из списка
 async def article_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-   reply_markup = InlineKeyboardMarkup(inline_keyboard=KEYBOARD_OF_ARTICLES)
+   reply_markup = InlineKeyboardMarkup(inline_keyboard=[KEYBOARD_OF_ARTICLES, BACK_KEY, BYE_KEY])
 
    await context.bot.send_message(
       chat_id=update.effective_chat.id,
       text=TEXT_LIST_OF_ARTICLES,
       reply_markup=reply_markup
    )
-   return CHOICE 
+   return MAIN_MENU
 
 # Завершение диалога с ботом
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
-    user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
-    await context.bot.send_message(
-       chat_id= update.effective_chat.id,
-       text= BYE_TEXT, reply_markup=ReplyKeyboardRemove()
-    )
+   await context.bot.send_message(
+         chat_id= update.effective_chat.id,
+         text= BYE_TEXT, 
+         reply_markup=ReplyKeyboardRemove()
+   )
 
-    return ConversationHandler.END
+   return ConversationHandler.END
