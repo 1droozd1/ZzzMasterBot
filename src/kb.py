@@ -8,5 +8,6 @@ reply_keyboard_first_menu = [["Калькулятор сна", "Статьи", "
 KEYBOARD_OF_ARTICLES = [InlineKeyboardButton(f"{key}", callback_data=f"{value}", url=value) for key, value in ARTICLES.items()]
 BACK_KEY = [InlineKeyboardButton("Назад в меню", callback_data="Назад в меню")]
 BYE_KEY = [InlineKeyboardButton(emoji.emojize("Пока:waving_hand:"), callback_data="Пока")]
+REMAIND_KEY = [InlineKeyboardButton("Да!", callback_data="Да!")]
 
 END_OF_FUNCTION_KEYBOARD = [["Назад в меню", "Пока!"]]

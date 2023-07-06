@@ -8,6 +8,7 @@ def main():
       states={
          MAIN_MENU: [
             CallbackQueryHandler(main_menu, pattern="^(Давай начнем!|Назад в меню)$"),
+            CallbackQueryHandler(remainder_notice, pattern="Да!"),
             CallbackQueryHandler(cancel, pattern="^Пока$")
          ],
          CHOICE: [
@@ -22,13 +23,13 @@ def main():
             ),
             '''
             MessageHandler(
-               filters.Regex("^Промокод"), promo
+               filters.Regex("^Промокод"), promo)
             )'''
          ],
          TIME_OF_WAKEUP: [MessageHandler(filters.TEXT, getting_amountHours)],
          HOURS: [MessageHandler(filters.TEXT, calculate_hours)]
       },
-      fallbacks=[MessageHandler(filters.Regex("^Пока$"), cancel)]
+      fallbacks=[MessageHandler(filters.Regex("^Пока:waving_hand:$"), cancel)]
    )
 
    application.add_handler(conv_handler)

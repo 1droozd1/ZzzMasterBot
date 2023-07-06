@@ -101,21 +101,55 @@ async def calculate_hours(update: Update, context: ContextTypes.DEFAULT_TYPE):
    # Если введенное время для пробуждения уже прошло сегодня, добавляем 1 день
    if wake_up < current_time:
       wake_up += datetime.timedelta(days=1)
-    
+   
+   global bedtime
    # Вычисляем оптимальное время для засыпания, вычитая выбранное кол-во сна от пользователя
    bedtime = wake_up - datetime.timedelta(hours=amount_hours)
 
    while bedtime < current_time:
       bedtime += datetime.timedelta(hours=1, minutes=30)
-   
-   bedtime = str(bedtime.strftime("%H:%M"))
 
    await context.bot.send_message(
       chat_id = update.effective_chat.id,
-      text=f"{TEXT_TIME_OF_WAKEUP}: {bedtime}",
-      reply_markup=InlineKeyboardMarkup(inline_keyboard=[BACK_KEY, BYE_KEY])
+      text=f"{TEXT_TIME_OF_WAKEUP}: {str(bedtime.strftime('%H:%M'))} {TEXT_REMAINDER}",
+      reply_markup=InlineKeyboardMarkup(inline_keyboard=[BACK_KEY, BYE_KEY, REMAIND_KEY])
    )
    # Возврат пользователя в главное меню
+   return MAIN_MENU
+
+def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    
+    current_jobs = context.job_queue.get_jobs_by_name(name)
+
+    if not current_jobs:
+        return False
+    for job in current_jobs:
+        job.schedule_removal()
+    return True
+
+async def alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send the alarm message."""
+    job = context.job
+    await context.bot.send_message(job.chat_id, text=f"Пора спать!")
+
+async def remainder_notice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+   chat_id = update.effective_message.chat_id
+
+   time = list(map(int, str(bedtime - datetime.datetime.now())[:4].split(':')))
+   due = 3600 * time[0] + 60 * time[1]
+
+   job_removed = remove_job_if_exists(str(chat_id), context)
+   context.job_queue.run_once(alarm, due, chat_id=chat_id, name=str(chat_id), data=due)
+   
+   text = f"{SUCCESS_REMAIND} {bedtime}"
+
+   if job_removed:
+      text += " Старое напоминание удалено."
+   
+   await context.bot.send_message(
+         chat_id=chat_id,
+         text=text,
+   )
    return MAIN_MENU
 
 # Выбор пользователем статьи из списка
