@@ -166,7 +166,7 @@ async def article_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Завершение диалога с ботом
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-
+   
    await context.bot.send_message(
          chat_id= update.effective_chat.id,
          text= BYE_TEXT, 
